@@ -89,38 +89,47 @@ class TSPSolver:
 		count = 0
 		bssf = None
 		start_time = time.time()
-		start_count = 0
-		while not foundTour and time.time() - start_time < time_allowance:
+		
+		for start_city in cities:
+			if time.time() - start_time > time_allowance:
+				break # time out break
+			
+			# Now build the route
 			route = []
-			# Now build the route using the random permutation
-			new_city = None
-			shortest_path = None
-			if start_count == ncities:
-				break
-			curr_city = cities[start_count]
-			count = 0
-			while count < ncities:
+			curr_city = start_city
+			fail = False
+			while len(route) < ncities:
+				# the shortest path from current_city. Starts as infinity
+				shortest_path = np.inf 
 				for i in range(ncities):
-					if cities[i] == curr_city:
+					if cities[i] is curr_city: # skip paths to ourself
 						continue
-					if cities[i] in route:
+					if cities[i] in route: # don't go to already visited
 						continue
 					dist = curr_city.costTo(cities[i])
-					if dist == np.inf:
+					if dist == np.inf: # verify that it is a valid path
 						continue
-					else:
-						if shortest_path is None or dist < shortest_path:
-							shortest_path = dist
-							new_city = cities[i]
-				route.append(new_city)
-				curr_city = new_city
-				count += 1
+					# If we made it thus far, then our path is valid. But is it shortest?
+					if dist < shortest_path:
+						shortest_path = dist
+						curr_city = cities[i]
+				# Verify that we actually found a valid path (sometimes no available- fail cond)
+				if shortest_path < np.inf:
+					route.append(curr_city) # append this to our route
+				else:
+					# fail case! We have to restart, but with the next starting point
+					fail = True
+					break
+			if fail:
+				continue
+			
+			# If we successfully found a path (no fail), then test against previous attempts
+			count += 1
 			path = TSPSolution(route)
 			if bssf is None or path.cost < bssf.cost:
 				if path.cost < math.inf:
 					bssf = path
 					foundTour = True
-			start_count += 1
 
 		end_time = time.time()
 		results['cost'] = bssf.cost if foundTour else math.inf

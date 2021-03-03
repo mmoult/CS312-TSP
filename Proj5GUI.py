@@ -32,7 +32,7 @@ from TSPClasses import *
 class PointLineView( QWidget ):
 	def __init__( self, status_bar, data_range ):
 		super(QWidget,self).__init__()
-		self.setMinimumSize(950,600)
+		self.setMinimumSize(600,400)
 
 		self.pointList	= {}
 		self.edgeList	= {}
@@ -302,8 +302,13 @@ class Proj5GUI( QMainWindow ):
 		self.statusBar.showMessage('Processing...')
 		#self.view.repaint()
 		#app.processEvents()
-		solve_func = 'self.solver.'+self.ALGORITHMS[self.algDropDown.currentIndex()][1]
-		results = eval(solve_func)(time_allowance=max_time )
+		try:
+			solve_func = 'self.solver.'+self.ALGORITHMS[self.algDropDown.currentIndex()][1]
+			results = eval(solve_func)(time_allowance=max_time )
+		except Exception as e:
+			print(e)
+			return
+		
 		if results:
 			self.statusBar.showMessage('')
 			self.numSolutions.setText( '{}'.format(results['count']) )
