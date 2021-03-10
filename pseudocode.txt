@@ -1,0 +1,48 @@
+Function pathWithFewestOptions:
+==============================
+graph[i] will give us all the edges to/from node i
+
+# determine which node we will start with
+connCount = [0] * nodes.length
+fewest = nodes[0] connections
+startNode = 0
+for i=1; i<nodes.length; i++:
+	connCount[i] = nodes[i] connections
+	if(connCount[i] < fewest:
+		fewest = connCount[i]
+		startNode = i
+
+#initialize the used array
+used = [False] * nodes.length
+usedLen = nodes.length
+
+current = fewest
+while usedLen > 0:
+	used[current] = True
+	usedLen--
+	next = 0
+	fewest = None
+	# found the next node to go to
+	for i in current.connection:
+		if used[i] == True:
+			continue
+		if (fewest is None or connCount[i] <= fewest):
+			if connCount[i] == fewest and dist of {current,i} > dist of {current,fewest}:
+				# test for which edge is shorter on a tie
+				continue
+			next = i
+			fewest = connCount[i]
+	
+	if fewest is None: # back up
+		# unvisit this node
+		used[current] = False
+		usedLen++
+		# set this edge to the banned edges
+		...
+		current = path[path.size - 1]
+	
+	#add what we have to the path
+	path.append(from current to next)
+	# move on to the next
+	current = next
+
