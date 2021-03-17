@@ -5,6 +5,7 @@ import random
 import signal
 import sys
 import time
+import traceback
 
 
 from which_pyqt import PYQT_VER
@@ -306,7 +307,7 @@ class Proj5GUI( QMainWindow ):
 			solve_func = 'self.solver.'+self.ALGORITHMS[self.algDropDown.currentIndex()][1]
 			results = eval(solve_func)(time_allowance=max_time )
 		except Exception as e:
-			print(e)
+			print(traceback.format_exc())
 			return
 		
 		if results:
