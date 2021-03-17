@@ -168,8 +168,74 @@ class TSPSolver:
 	'''
 		
 	def fancy( self,time_allowance=60.0 ):
-		pass
-		
+		results = {}
+		cities = self._scenario.getCities()
+		connections = [[]] * len(cities)
+		fewest = math.inf
+		startCity = None
+		start_time = time.time()
 
+		for i in range(len(cities)):
+			cons = []
+			for route in range(len(cities)):
+				if cities[i] is cities[route]:  # skip paths to ourself
+					continue
+				dist = cities[route].costTo(cities[i])
+				if dist == np.inf:  # verify that it is a valid path
+					continue
+				cons.append(route)
+			connections[i] = cons
 
+			if len(connections[i]) < fewest:
+				fewest = len(connections[i])
+				startCity = i
 
+		used = [False] * len(cities)
+		usedLen = len(cities)
+
+		banned_edges = [[]] * len(cities)
+		path = [startCity]
+
+		current = startCity
+		while usedLen > 0:
+			used[current] = True
+			usedLen -= 1
+			next = 0
+			fewest = None
+			for i in range(len(connections[current])):
+				if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
+					continue
+				if fewest is None or len(connections[connections[current][i]]) < fewest:
+					fewest = len(connections[connections[current][i]])
+					next = connections[current][i]
+				elif fewest == len(connections[connections[current][i]]) and \
+						cities[current].costTo(connections[current][i]) < cities[current].costTo(cities[next]):
+					next = connections[current][i]
+
+			if fewest is None:
+				used[current] = False
+				usedLen += 1
+				banned_edges[path[path.size - 1]].append(current)
+				next = path[path.size - 1]
+
+			path.append(next)
+			current = next
+
+		route = []
+		foundTour = True
+		if len(path) < len(cities):
+			foundTour = False
+		for i in path:
+			route.append(cities[i])
+
+		bssf = TSPSolution(route)
+
+		end_time = time.time()
+		results['cost'] = bssf.cost if foundTour else math.inf
+		results['time'] = end_time - start_time
+		results['count'] = 1
+		results['soln'] = bssf
+		results['max'] = None
+		results['total'] = None
+		results['pruned'] = None
+		return results
