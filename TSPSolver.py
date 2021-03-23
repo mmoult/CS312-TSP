@@ -197,30 +197,38 @@ class TSPSolver:
 		path = [startCity]
 
 		current = startCity
+		backtrack = False
 		while usedLen > 0:
 			used[current] = True
 			usedLen -= 1
+			if usedLen == 0:
+				if startCity in connections[current]:
+					break
+				else:
+					backtrack = True
 			next = 0
 			fewest = None
-			for i in range(len(connections[current])):
-				if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
-					continue
-				if fewest is None or len(connections[connections[current][i]]) < fewest:
-					fewest = len(connections[connections[current][i]])
-					next = connections[current][i]
-				elif fewest == len(connections[connections[current][i]]) and \
-						cities[current].costTo(connections[current][i]) < cities[current].costTo(cities[next]):
-					next = connections[current][i]
+			if not backtrack:
+				for i in range(len(connections[current])):
+					if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
+						continue
+					if fewest is None or len(connections[connections[current][i]]) < fewest:
+						fewest = len(connections[connections[current][i]])
+						next = connections[current][i]
+					elif fewest == len(connections[connections[current][i]]) and \
+							cities[current].costTo(cities[connections[current][i]]) < cities[current].costTo(cities[next]):
+						next = connections[current][i]
 
-			if fewest is None:
+			if fewest is None or backtrack is True:
 				used[current] = False
 				usedLen += 1
-				banned_edges[path[path.size - 1]].append(current)
-				next = path[path.size - 1]
+				banned_edges[path[len(path) - 1]].append(current)
+				next = path[len(path) - 1]
+				backtrack = False
+				print("Back-Track")
 
 			path.append(next)
 			current = next
-
 		route = []
 		foundTour = True
 		if len(path) < len(cities):
