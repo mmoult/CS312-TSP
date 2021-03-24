@@ -170,21 +170,20 @@ class TSPSolver:
 	def fancy( self,time_allowance=60.0 ):
 		results = {}
 		cities = self._scenario.getCities()
-		connections = [[]] * len(cities)
+		connections = [[] for _ in range(len(cities))]
 		fewest = math.inf
 		startCity = None
 		start_time = time.time()
 
 		for i in range(len(cities)):
-			cons = []
 			for route in range(len(cities)):
 				if cities[i] is cities[route]:  # skip paths to ourself
 					continue
 				dist = cities[route].costTo(cities[i])
 				if dist == np.inf:  # verify that it is a valid path
 					continue
-				cons.append(route)
-			connections[i] = cons
+				# This is a digraph, so the connections are unidirectional
+				connections[route].append(i)
 
 			if len(connections[i]) < fewest:
 				fewest = len(connections[i])
@@ -236,6 +235,7 @@ class TSPSolver:
 		for i in path:
 			route.append(cities[i])
 
+		#from 5 to 10 is giving error
 		bssf = TSPSolution(route)
 
 		end_time = time.time()
