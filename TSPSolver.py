@@ -192,12 +192,15 @@ class TSPSolver:
 		used = [False] * len(cities)
 		usedLen = len(cities)
 
-		banned_edges = [[]] * len(cities)
+		banned_edges = [[] for _ in range(len(cities))]
 		path = [startCity]
 
 		current = startCity
 		backtrack = False
 		while usedLen > 0:
+			if time.time() - start_time > time_allowance:
+				break # time out break
+			
 			used[current] = True
 			usedLen -= 1
 			if usedLen == 0:
@@ -205,8 +208,8 @@ class TSPSolver:
 					break
 				else:
 					backtrack = True
-			next = 0
-			fewest = None
+			next = 0 # the city index that we should go to next
+			fewest = None # number of connections
 			if not backtrack:
 				for i in range(len(connections[current])):
 					if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
@@ -220,11 +223,12 @@ class TSPSolver:
 
 			if fewest is None or backtrack is True:
 				used[current] = False
-				usedLen += 1
-				banned_edges[path[len(path) - 1]].append(current)
-				next = path[len(path) - 1]
+				usedLen += 2
+				banned_edges[path[-2]].append(current)
+				next = path[-2]
+				path = path[0:-2]
 				backtrack = False
-				print("Back-Track")
+				# print("Back-Track")
 
 			path.append(next)
 			current = next
