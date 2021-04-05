@@ -12,10 +12,7 @@ else:
 
 
 import time
-import numpy as np
 from TSPClasses import *
-import heapq
-import itertools
 
 
 
@@ -48,14 +45,14 @@ class TSPSolver:
 		start_time = time.time()
 		while not foundTour and time.time()-start_time < time_allowance:
 			# create a random permutation
-			perm = np.random.permutation( ncities )
+			perm = math.random.permutation( ncities )
 			route = []
 			# Now build the route using the random permutation
 			for i in range( ncities ):
 				route.append( cities[ perm[i] ] )
 			bssf = TSPSolution(route)
 			count += 1
-			if bssf.cost < np.inf:
+			if bssf.cost < math.inf:
 				# Found a valid route
 				foundTour = True
 		end_time = time.time()
@@ -100,21 +97,21 @@ class TSPSolver:
 			fail = False
 			while len(route) < ncities:
 				# the shortest path from current_city. Starts as infinity
-				shortest_path = np.inf 
+				shortest_path = math.inf 
 				for i in range(ncities):
 					if cities[i] is curr_city: # skip paths to ourself
 						continue
 					if cities[i] in route: # don't go to already visited
 						continue
 					dist = curr_city.costTo(cities[i])
-					if dist == np.inf: # verify that it is a valid path
+					if dist == math.inf: # verify that it is a valid path
 						continue
 					# If we made it thus far, then our path is valid. But is it shortest?
 					if dist < shortest_path:
 						shortest_path = dist
 						curr_city = cities[i]
 				# Verify that we actually found a valid path (sometimes no available- fail cond)
-				if shortest_path < np.inf:
+				if shortest_path < math.inf:
 					route.append(curr_city) # append this to our route
 				else:
 					# fail case! We have to restart, but with the next starting point
@@ -180,7 +177,7 @@ class TSPSolver:
 				if cities[i] is cities[route]:  # skip paths to ourself
 					continue
 				dist = cities[route].costTo(cities[i])
-				if dist == np.inf:  # verify that it is a valid path
+				if dist == math.inf:  # verify that it is a valid path
 					continue
 				# This is a digraph, so the connections are unidirectional
 				connections[route].append(i)
@@ -251,3 +248,4 @@ class TSPSolver:
 		results['total'] = None
 		results['pruned'] = None
 		return results
+	
