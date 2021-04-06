@@ -97,7 +97,8 @@ class TSPSolver:
 			fail = False
 			while len(route) < ncities:
 				# the shortest path from current_city. Starts as infinity
-				shortest_path = math.inf 
+				shortest_path = math.inf
+				next_city = None
 				for i in range(ncities):
 					if cities[i] is curr_city: # skip paths to ourself
 						continue
@@ -109,7 +110,8 @@ class TSPSolver:
 					# If we made it thus far, then our path is valid. But is it shortest?
 					if dist < shortest_path:
 						shortest_path = dist
-						curr_city = cities[i]
+						next_city = cities[i]
+				curr_city = next_city
 				# Verify that we actually found a valid path (sometimes no available- fail cond)
 				if shortest_path < math.inf:
 					route.append(curr_city) # append this to our route
@@ -117,6 +119,9 @@ class TSPSolver:
 					# fail case! We have to restart, but with the next starting point
 					fail = True
 					break
+			dist = route[-1].costTo(route[0])
+			if dist == math.inf:
+				fail = True
 			if fail:
 				continue
 			
@@ -240,6 +245,7 @@ class TSPSolver:
 		bssf = TSPSolution(route)
 
 		end_time = time.time()
+		print(end_time - start_time)
 		results['cost'] = bssf.cost if foundTour else math.inf
 		results['time'] = end_time - start_time
 		results['count'] = 1
