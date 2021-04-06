@@ -86,40 +86,45 @@ class TSPSolver:
 		count = 0
 		bssf = None
 		start_time = time.time()
-		
+
 		for start_city in cities:
 			if time.time() - start_time > time_allowance:
-				break # time out break
-			
+				break  # time out break
+
 			# Now build the route
 			route = []
 			curr_city = start_city
 			fail = False
 			while len(route) < ncities:
 				# the shortest path from current_city. Starts as infinity
-				shortest_path = math.inf 
+				shortest_path = math.inf
+				next_city = None
 				for i in range(ncities):
-					if cities[i] is curr_city: # skip paths to ourself
+					if cities[i] is curr_city:  # skip paths to ourself
 						continue
-					if cities[i] in route: # don't go to already visited
+					if cities[i] in route:  # don't go to already visited
 						continue
 					dist = curr_city.costTo(cities[i])
-					if dist == math.inf: # verify that it is a valid path
+					if dist == math.inf:  # verify that it is a valid path
 						continue
 					# If we made it thus far, then our path is valid. But is it shortest?
 					if dist < shortest_path:
 						shortest_path = dist
-						curr_city = cities[i]
+						next_city = cities[i]
+				curr_city = next_city
 				# Verify that we actually found a valid path (sometimes no available- fail cond)
 				if shortest_path < math.inf:
-					route.append(curr_city) # append this to our route
+					route.append(curr_city)  # append this to our route
 				else:
 					# fail case! We have to restart, but with the next starting point
 					fail = True
 					break
+			dist = route[-1].costTo(route[0])
+			if dist == math.inf:
+				fail = True
 			if fail:
 				continue
-			
+
 			# If we successfully found a path (no fail), then test against previous attempts
 			count += 1
 			path = TSPSolution(route)
