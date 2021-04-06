@@ -205,16 +205,16 @@ class TSPSolver:
 					break
 				else:
 					backtrack = True
-			next = 0 # the city index that we should go to next
-			fewest = None # number of connections
+			next = 0  # the city index that we should go to next
+			fewest = None  # Length City
 			if not backtrack:
 				for i in range(len(connections[current])):
 					if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
 						continue
-					if fewest is None or len(connections[connections[current][i]]) < fewest:
-						fewest = len(connections[connections[current][i]])
+					if fewest is None or cities[current].costTo(cities[connections[current][i]]) < cities[current].costTo(cities[next]):
 						next = connections[current][i]
-					elif fewest == len(connections[connections[current][i]]) and \
+						fewest = cities[current].costTo(cities[next])
+					elif len(connections[next]) == len(connections[connections[current][i]]) and \
 							cities[current].costTo(cities[connections[current][i]]) < cities[current].costTo(cities[next]):
 						next = connections[current][i]
 
