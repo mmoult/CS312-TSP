@@ -131,3 +131,4 @@ dmypy.json
 # Project config
 .project
 .pydevproject
+.idea/*
