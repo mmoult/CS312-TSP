@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 from which_pyqt import PYQT_VER
-
 if PYQT_VER == 'PYQT5':
 	from PyQt5.QtCore import QLineF, QPointF
 elif PYQT_VER == 'PYQT4':
@@ -14,11 +13,12 @@ from TSPClasses import *
 
 
 class TSPSolver:
-	def __init__(self, gui_view):
+	def __init__( self, gui_view ):
 		self._scenario = None
 
-	def setupWithScenario(self, scenario):
+	def setupWithScenario( self, scenario ):
 		self._scenario = scenario
+
 
 	''' <summary>
 		This is the entry point for the default solver
@@ -30,8 +30,8 @@ class TSPSolver:
 		solution found, and three null values for fields not used for this 
 		algorithm</returns> 
 	'''
-
-	def defaultRandomTour(self, time_allowance=60.0):
+	
+	def defaultRandomTour( self, time_allowance=60.0 ):
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
@@ -39,13 +39,13 @@ class TSPSolver:
 		count = 0
 		bssf = None
 		start_time = time.time()
-		while not foundTour and time.time() - start_time < time_allowance:
+		while not foundTour and time.time()-start_time < time_allowance:
 			# create a random permutation
-			perm = math.random.permutation(ncities)
+			perm = math.random.permutation( ncities )
 			route = []
 			# Now build the route using the random permutation
-			for i in range(ncities):
-				route.append(cities[perm[i]])
+			for i in range( ncities ):
+				route.append( cities[ perm[i] ] )
 			bssf = TSPSolution(route)
 			count += 1
 			if bssf.cost < math.inf:
@@ -61,6 +61,7 @@ class TSPSolver:
 		results['pruned'] = None
 		return results
 
+
 	''' <summary>
 		This is the entry point for the greedy solver, which you must implement for 
 		the group project (but it is probably a good idea to just do it for the branch-and
@@ -73,7 +74,7 @@ class TSPSolver:
 		algorithm</returns> 
 	'''
 
-	def greedy(self, time_allowance=60.0):
+	def greedy( self,time_allowance=60.0 ):
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
@@ -81,11 +82,11 @@ class TSPSolver:
 		count = 0
 		bssf = None
 		start_time = time.time()
-
+		
 		for start_city in cities:
 			if time.time() - start_time > time_allowance:
-				break  # time out break
-
+				break # time out break
+			
 			# Now build the route
 			route = []
 			curr_city = start_city
@@ -95,12 +96,12 @@ class TSPSolver:
 				shortest_path = math.inf
 				next_city = None
 				for i in range(ncities):
-					if cities[i] is curr_city:  # skip paths to ourself
+					if cities[i] is curr_city: # skip paths to ourself
 						continue
-					if cities[i] in route:  # don't go to already visited
+					if cities[i] in route: # don't go to already visited
 						continue
 					dist = curr_city.costTo(cities[i])
-					if dist == math.inf:  # verify that it is a valid path
+					if dist == math.inf: # verify that it is a valid path
 						continue
 					# If we made it thus far, then our path is valid. But is it shortest?
 					if dist < shortest_path:
@@ -109,7 +110,7 @@ class TSPSolver:
 				curr_city = next_city
 				# Verify that we actually found a valid path (sometimes no available- fail cond)
 				if shortest_path < math.inf:
-					route.append(curr_city)  # append this to our route
+					route.append(curr_city) # append this to our route
 				else:
 					# fail case! We have to restart, but with the next starting point
 					fail = True
@@ -119,7 +120,7 @@ class TSPSolver:
 				fail = True
 			if fail:
 				continue
-
+			
 			# If we successfully found a path (no fail), then test against previous attempts
 			count += 1
 			path = TSPSolution(route)
@@ -138,6 +139,9 @@ class TSPSolver:
 		results['pruned'] = None
 		return results
 
+	
+	
+	
 	''' <summary>
 		This is the entry point for the branch-and-bound algorithm that you will implement
 		</summary>
@@ -146,9 +150,11 @@ class TSPSolver:
 		not include the initial BSSF), the best solution found, and three more ints: 
 		max queue size, total number of states created, and number of pruned states.</returns> 
 	'''
-
-	def branchAndBound(self, time_allowance=60.0):
+		
+	def branchAndBound( self, time_allowance=60.0 ):
 		pass
+
+
 
 	''' <summary>
 		This is the entry point for the algorithm you'll write for your group project.
@@ -158,51 +164,85 @@ class TSPSolver:
 		best solution found.  You may use the other three field however you like.
 		algorithm</returns> 
 	'''
-
-	def fancy(self, time_allowance=60.0):
+		
+	def fancy( self,time_allowance=60.0 ):
 		results = {}
 		cities = self._scenario.getCities()
 		connections = [[] for _ in range(len(cities))]
 		fewest = math.inf
+		startCity = None
 		start_time = time.time()
-		startCost = math.inf
-		path = []
-		unused = [i for i in range(len(cities))]
-		for start_city in range(len(cities)):
-			for i in connections[start_city]:
-				for j in connections[i]:
-					if start_city in connections[j]:
-						cost = cities[start_city].costTo(cities[i])
-						cost += cities[i].costTo(cities[j])
-						cost += cities[j].costTo(cities[start_city])
-						if cost < startCost:
-							path = [start_city, i, j]
 
-		for i in path:
-			unused.remove(i)
+		for i in range(len(cities)):
+			for route in range(len(cities)):
+				if cities[i] is cities[route]:  # skip paths to ourself
+					continue
+				dist = cities[route].costTo(cities[i])
+				if dist == math.inf:  # verify that it is a valid path
+					continue
+				# This is a digraph, so the connections are unidirectional
+				connections[route].append(i)
 
-		while len(path) < len(cities):
-			next_insert = None
-			insert_loc = None
-			next_cost = math.inf
-			for i in unused:
-				for j in range(len(path)):
-					if i in connections[path[j - 1]] and path[j] in connections[i]:
-						cost = cities[path[j - 1]].costTo(cities[i])
-						cost += cities[i].costTo(cities[path[j]])
-						if cost < next_cost:
-							next_insert = i
-							insert_loc = j
-							next_cost = cost
-			path.insert(insert_loc, next_insert)
-			unused.remove(next_insert)
+			if len(connections[i]) < fewest:
+				fewest = len(connections[i])
+				startCity = i
 
+		used = [False] * len(cities)
+		usedLen = len(cities)
+
+		banned_edges = [[] for _ in range(len(cities))]
+		path = [startCity]
+
+		current = startCity
+		backtrack = False
+		while usedLen > 0:
+			if time.time() - start_time > time_allowance:
+				break # time out break
+			
+			used[current] = True
+			usedLen -= 1
+			if usedLen == 0:
+				if startCity in connections[current]:
+					break
+				else:
+					backtrack = True
+			next = 0 # the city index that we should go to next
+			fewest = None # number of connections
+			if not backtrack:
+				for i in range(len(connections[current])):
+					if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
+						continue
+					if fewest is None or len(connections[connections[current][i]]) < fewest:
+						fewest = len(connections[connections[current][i]])
+						next = connections[current][i]
+					elif fewest == len(connections[connections[current][i]]) and \
+							cities[current].costTo(cities[connections[current][i]]) < cities[current].costTo(cities[next]):
+						next = connections[current][i]
+
+			if fewest is None or backtrack is True:
+				used[current] = False
+				usedLen += 2
+				banned_edges[path[-2]].append(current)
+				next = path[-2]
+				path = path[0:-2]
+				backtrack = False
+				# print("Back-Track")
+
+			path.append(next)
+			current = next
 		route = []
+		foundTour = True
+		if len(path) < len(cities):
+			foundTour = False
 		for i in path:
 			route.append(cities[i])
+
+		#from 5 to 10 is giving error
 		bssf = TSPSolution(route)
+
 		end_time = time.time()
-		results['cost'] = bssf.cost
+		print(end_time - start_time)
+		results['cost'] = bssf.cost if foundTour else math.inf
 		results['time'] = end_time - start_time
 		results['count'] = 1
 		results['soln'] = bssf
@@ -210,3 +250,4 @@ class TSPSolver:
 		results['total'] = None
 		results['pruned'] = None
 		return results
+	
