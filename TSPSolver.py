@@ -164,90 +164,112 @@ class TSPSolver:
 		best solution found.  You may use the other three field however you like.
 		algorithm</returns> 
 	'''
-		
 	def fancy( self,time_allowance=60.0 ):
-		results = {}
 		cities = self._scenario.getCities()
-		connections = [[] for _ in range(len(cities))]
+		
 		fewest = math.inf
-		startCity = None
+		
 		start_time = time.time()
+		
+		# we can try using 2-opt, which is a local search algorithm to optimize what we get from greedy
+		bssf = self.greedy(60)
+		if bssf['cost'] == math.inf:
+			# greedy failed to give us a result. We *need* some path for the 2-opt, so we use
+			# backtracking to guarantee
+			startCity, connections = initialize()
+			bssf = secureGreedy(connections, startCity)
 
-		for i in range(len(cities)):
-			for route in range(len(cities)):
-				if cities[i] is cities[route]:  # skip paths to ourself
-					continue
-				dist = cities[route].costTo(cities[i])
-				if dist == math.inf:  # verify that it is a valid path
-					continue
-				# This is a digraph, so the connections are unidirectional
-				connections[route].append(i)
-
-			if len(connections[i]) < fewest:
-				fewest = len(connections[i])
-				startCity = i
-
-		used = [False] * len(cities)
-		usedLen = len(cities)
-
-		banned_edges = [[] for _ in range(len(cities))]
-		path = [startCity]
-
-		current = startCity
-		backtrack = False
-		while usedLen > 0:
-			if time.time() - start_time > time_allowance:
-				break # time out break
-			
-			used[current] = True
-			usedLen -= 1
-			if usedLen == 0:
-				if startCity in connections[current]:
-					break
-				else:
-					backtrack = True
-			next = 0 # the city index that we should go to next
-			fewest = None # number of connections
-			if not backtrack:
-				for i in range(len(connections[current])):
-					if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
-						continue
-					if fewest is None or len(connections[connections[current][i]]) < fewest:
-						fewest = len(connections[connections[current][i]])
-						next = connections[current][i]
-					elif fewest == len(connections[connections[current][i]]) and \
-							cities[current].costTo(cities[connections[current][i]]) < cities[current].costTo(cities[next]):
-						next = connections[current][i]
-
-			if fewest is None or backtrack is True:
-				used[current] = False
-				usedLen += 2
-				banned_edges[path[-2]].append(current)
-				next = path[-2]
-				path = path[0:-2]
-				backtrack = False
-				# print("Back-Track")
-
-			path.append(next)
-			current = next
-		route = []
-		foundTour = True
-		if len(path) < len(cities):
-			foundTour = False
-		for i in path:
-			route.append(cities[i])
-
-		#from 5 to 10 is giving error
-		bssf = TSPSolution(route)
+		# now we go into the main local search loop
+		# we want to find pairs of paths to switch
+		
+		
+		#bssf = TSPSolution(route)
 
 		end_time = time.time()
 		print(end_time - start_time)
-		results['cost'] = bssf.cost if foundTour else math.inf
+		results = {}
+		results['cost'] = bssf['cost']
 		results['time'] = end_time - start_time
-		results['count'] = 1
-		results['soln'] = bssf
+		results['count'] = bssf['count']
+		results['soln'] = bssf['soln']
 		results['max'] = None
 		results['total'] = None
 		results['pruned'] = None
 		return results
+
+
+def initialize():
+	startCity = None
+	connections = [[] for _ in range(len(cities))]
+	for i in range(len(cities)):
+		for route in range(len(cities)):
+			if cities[i] is cities[route]:  # skip paths to ourself
+				continue
+			dist = cities[route].costTo(cities[i])
+			if dist == math.inf:  # verify that it is a valid path
+				continue
+			# This is a digraph, so the connections are unidirectional
+			connections[route].append(i)
+
+		if len(connections[i]) < fewest:
+			fewest = len(connections[i])
+			startCity = i
+	return startCity, connections
+
+
+def secureGreedy(connections, startCity):
+	used = [False] * len(cities)
+	usedLen = len(cities)
+
+	banned_edges = [[] for _ in range(len(cities))]
+	path = [startCity]
+
+	current = startCity
+	backtrack = False
+	while usedLen > 0:
+		used[current] = True
+		usedLen -= 1
+		if usedLen == 0:
+			if startCity in connections[current]:
+				break
+			else:
+				backtrack = True
+		next = 0 # the city index that we should go to next
+		fewest = None # number of connections
+		cheapest = None
+		if not backtrack:
+			for i in range(len(connections[current])):
+				if used[connections[current][i]] or connections[current][i] in banned_edges[current]:
+					continue
+				if cheapest is None or cities[current].costTo(cities[connections[current][i]]) < cheapest:
+					cheapest = cities[current].costTo(cities[connections[current][i]])
+					next = connections[current][i]
+				elif cheapest == cities[current].costTo(cities[connections[current][i]]) and \
+						len(connections[connections[current][i]]) < len(connections[connections[current][next]]):
+					next = connections[current][i]
+
+		if fewest is None or backtrack is True:
+			used[current] = False
+			usedLen += 2
+			banned_edges[path[-2]].append(current)
+			next = path[-2]
+			path = path[0:-2]
+			backtrack = False
+			# print("Back-Track")
+
+		path.append(next)
+		current = next
+	route = []
+	for i in path:
+		route.append(cities[i])
+	
+	bssf = TSPSolution(route)
+	results['cost'] = bssf.cost if foundTour else math.inf
+	results['time'] = end_time - start_time
+	results['count'] = 1
+	results['soln'] = bssf
+	results['max'] = None
+	results['total'] = None
+	results['pruned'] = None
+	return results
 	
