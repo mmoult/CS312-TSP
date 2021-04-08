@@ -244,7 +244,7 @@ class TSPSolver:
 					if currCost > backCost + path[i].costTo(path[skipIndex]) + \
 											path[(i+1) % len(cities)].costTo(path[afterIndex]):
 						# if we are here, we need to make the path alteration
-						print("Reverse worked!", i, skipIndex)
+						#print("Reverse worked!", i, skipIndex)
 						alteration = True
 						
 						# reconstruct the path. We cannot simply use slices because we don't know if
@@ -253,11 +253,11 @@ class TSPSolver:
 						ii = skipIndex
 						while ii != i:
 							tempPath.append(path[ii])
-							ii = (ii-1) % len(cities)
-						ii = skipIndex + 1
+							ii = (ii-1) % len(path)
+						ii = (skipIndex + 1) % len(path)
 						while ii != i:
 							tempPath.append(path[ii])
-							ii = (ii+1) % len(cities)						
+							ii = (ii+1) % len(path)					
 						path = tempPath
 						break
 				# if alteration made, we need to restart the upper path iteration
@@ -606,6 +606,7 @@ def secureGreedy(connections, startCity, cities):
 	banned_edges = [[] for _ in range(len(cities))]
 	path = [startCity]
 
+	foundTour = False
 	current = startCity
 	backtrack = False
 	while usedLen > 0:
@@ -613,11 +614,11 @@ def secureGreedy(connections, startCity, cities):
 		usedLen -= 1
 		if usedLen == 0:
 			if startCity in connections[current]:
+				foundTour = True
 				break
 			else:
 				backtrack = True
 		next = 0 # the city index that we should go to next
-		fewest = None # number of connections
 		cheapest = None
 		if not backtrack:
 			for i in range(len(connections[current])):
@@ -629,8 +630,10 @@ def secureGreedy(connections, startCity, cities):
 				elif cheapest == cities[current].costTo(cities[connections[current][i]]) and \
 						len(connections[connections[current][i]]) < len(connections[connections[current][next]]):
 					next = connections[current][i]
+			if cheapest == math.inf:
+				backtrack = True
 
-		if fewest is None or backtrack is True:
+		if backtrack:
 			used[current] = False
 			usedLen += 2
 			if len(path) < 2:
@@ -648,13 +651,10 @@ def secureGreedy(connections, startCity, cities):
 		route.append(cities[i])
 	
 	bssf = TSPSolution(route)
+	results = {}
 	results['cost'] = bssf.cost if foundTour else math.inf
-	results['time'] = end_time - start_time
 	results['count'] = 1
 	results['soln'] = bssf
-	results['max'] = None
-	results['total'] = None
-	results['pruned'] = None
 	return results
 
 	
