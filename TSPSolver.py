@@ -165,8 +165,19 @@ class TSPSolver:
 		if bssf['cost'] == math.inf:
 			# greedy failed to give us a result. We *need* some path, so we use
 			# backtracking to guarantee
+			# we try to initialize with a smart starting city
 			startCity, connections = initialize(cities)
-			bssf = secureGreedy(connections, startCity)
+			bssf = secureGreedy(connections, startCity, cities)
+			# if that fails, we have to run through all alternatives
+			for i in range(len(cities)):
+				if bssf['cost'] != math.inf:
+					break 
+				if i == startCity:
+					continue
+				bssf = secureGreedy(connections, i, cities)
+				if i+1 >= len(cities):
+					# We somehow managed to find nothing, even with the backtracking
+					return None
 
 		# now we go into the main local search loop
 		# we want to find pairs of paths to switch
@@ -182,58 +193,76 @@ class TSPSolver:
 		'''
 		path = bssf['soln'].route
 		
-		# This is what we call "skip ahead-reverse:
+		# This is what we call "skip ahead-reverse":
 		# ------------------------------------------
 		# skip limit must be less than the number of cities in the scenario
-		skipLimit = 5 
-		for i in range(len(path)):
-			skipStart = 2 # we have to go more than just 1, because that is the regular path
-			# we use currCost and backCost to see if the skip ahead is cheaper
-			# initialize current cost to the distance for the first 2 (since that is where skipping begins)
-			tempIndex = (i+1) % len(cities)
-			afterIndex = (i+skipStart) % len(cities) # this is started as what skip will be the first iteration
+		skipLimit = len(cities)
+		
+		alteration = True
+		while alteration and time.time() - start_time < time_allowance:
+			alteration = False # this is how I am doing a do-while loop
+			# there must be an alteration every time we cycle through all cities to keep going
+			# if no alterations are made, then we have converged and we can break out
 			
-			currCost = path[i].costTo(path[tempIndex])
-			currCost += path[tempIndex].costTo(path[afterIndex])
-			backCost = 0
-			
-			# if any alteration was made. If so, we need to get out of the upper iteration (since the path was changed)
-			alteration = False
-			for j in range(skipStart, skipLimit):
-				# we keep track of these to save computation time
-				skipIndex = afterIndex
-				afterIndex = (skipIndex + 1) % len(cities) # after is always 1 ahead of skip
+			for i in range(len(path)):
+				skipStart = 2 # we have to go more than just 1, because that is the regular path
+				# we use currCost and backCost to see if the skip ahead is cheaper
+				# initialize current cost to the distance for the first 2 (since that is where skipping begins)
+				tempIndex = (i+1) % len(cities)
+				afterIndex = (i+skipStart) % len(cities) # this is started as what skip will be the first iteration
 				
-				fail = False
-				# increase the min replaced cost for the next transition being skipped
-				currCost += path[skipIndex].costTo(path[afterIndex])
-				# if there is a skip ahead path
-				if path[i].costTo(path[skipIndex]) == math.inf:
-					fail = True # there is no direct path
-				# now we have to verify that the backwards path is valid
-				if path[skipIndex].costTo(path[skipIndex-1]) == math.inf:
-					# If there is no backwards path anywhere along the skip forward,
-					# then all further checks are invalidated. The future path would fail here
+				currCost = path[i].costTo(path[tempIndex])
+				currCost += path[tempIndex].costTo(path[afterIndex])
+				backCost = 0
+				
+				for j in range(skipStart, skipLimit):
+					# we keep track of these to save computation time
+					skipIndex = afterIndex
+					afterIndex = (skipIndex + 1) % len(cities) # after is always 1 ahead of skip
+					
+					fail = False
+					# increase the min replaced cost for the next transition being skipped
+					currCost += path[skipIndex].costTo(path[afterIndex])
+					# if there is a skip ahead path
+					if path[i].costTo(path[skipIndex]) == math.inf:
+						fail = True # there is no direct path
+					# now we have to verify that the backwards path is valid
+					if path[skipIndex].costTo(path[skipIndex-1]) == math.inf:
+						# If there is no backwards path anywhere along the skip forward,
+						# then all further checks are invalidated. The future path would fail here
+						break
+					backCost += path[skipIndex].costTo(path[skipIndex-1]) # Python handles negative indices (so we don't need %)
+					if fail:
+						continue
+					
+					# if we got here, then the path back is valid, now we have to make the comparison to
+					# see if it is actually worth it to switch
+					
+					# we can keep track of the current path cost accurately
+					# The back path we cannot fully keep track of since the end points change each iteration,
+					# therefore, we need to add from i to skip and from the end of the reverse -> afterIndex and 
+					if currCost > backCost + path[i].costTo(path[skipIndex]) + \
+											path[(i+1) % len(cities)].costTo(path[afterIndex]):
+						# if we are here, we need to make the path alteration
+						print("Reverse worked!", i, skipIndex)
+						alteration = True
+						
+						# reconstruct the path. We cannot simply use slices because we don't know if
+						# skipIndex is after i (the looping by % throws it off)
+						tempPath = [path[i]]
+						ii = skipIndex
+						while ii != i:
+							tempPath.append(path[ii])
+							ii = (ii-1) % len(cities)
+						ii = skipIndex + 1
+						while ii != i:
+							tempPath.append(path[ii])
+							ii = (ii+1) % len(cities)						
+						path = tempPath
+						break
+				# if alteration made, we need to restart the upper path iteration
+				if alteration:
 					break
-				backCost += path[skipIndex].costTo(path[skipIndex-1]) # Python handles negative indices (so we don't need %)
-				if fail:
-					continue
-				
-				# if we got here, then the path back is valid, now we have to make the comparison to
-				# see if it is actually worth it to switch
-				
-				# we can keep track of the current path cost accurately
-				# The back path we cannot fully keep track of since the end points change each iteration,
-				# therefore, we need to add from i to skip and from the end of the reverse -> afterIndex and 
-				if currCost > backCost + path[i].costTo(path[skipIndex]) + \
-										path[(i+1) % len(cities)].costTo(path[afterIndex]):
-					# if we are here, we need to make the path alteration
-					print("Reverse worked!", i, skipIndex)
-					alteration = True
-					path = path[0:i+1] + path[skipIndex:i:-1] + path[skipIndex+1:]
-					break
-			if alteration:
-				break
 			
 		
 		bssf = TSPSolution(path)
@@ -570,7 +599,7 @@ def initialize(cities):
 	return startCity, connections
 
 
-def secureGreedy(connections, startCity):
+def secureGreedy(connections, startCity, cities):
 	used = [False] * len(cities)
 	usedLen = len(cities)
 
@@ -604,6 +633,8 @@ def secureGreedy(connections, startCity):
 		if fewest is None or backtrack is True:
 			used[current] = False
 			usedLen += 2
+			if len(path) < 2:
+				return {'cost': math.inf} # we have to restart
 			banned_edges[path[-2]].append(current)
 			next = path[-2]
 			path = path[0:-2]
