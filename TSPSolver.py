@@ -180,20 +180,9 @@ class TSPSolver:
 					return None
 
 		# now we go into the main local search loop
-		# we want to find pairs of paths to switch
-		'''def findCostliestEdge(path):
-			expensive = None
-			value = 0
-			for i in range(len(path)):
-				thisVal = path[i-1].costTo(path[i])
-				if expensive is None or thisVal < value:
-					value = thisVal
-					expensive = i
-			return i
-		'''
 		path = bssf['soln'].route
 		
-		# This is what we call "skip ahead-reverse":
+		# This is what we call "skip-ahead" optimizations
 		# ------------------------------------------
 		# skip limit must be less than the number of cities in the scenario
 		skipLimit = len(cities)
@@ -214,6 +203,7 @@ class TSPSolver:
 				currCost = path[i].costTo(path[tempIndex])
 				currCost += path[tempIndex].costTo(path[afterIndex])
 				backCost = 0
+				reverse = True
 				
 				for j in range(skipStart, skipLimit):
 					# we keep track of these to save computation time
@@ -230,34 +220,63 @@ class TSPSolver:
 					if path[skipIndex].costTo(path[skipIndex-1]) == math.inf:
 						# If there is no backwards path anywhere along the skip forward,
 						# then all further checks are invalidated. The future path would fail here
-						break
+						reverse = False
+					
 					backCost += path[skipIndex].costTo(path[skipIndex-1]) # Python handles negative indices (so we don't need %)
-					if fail:
+					if fail: # if this skip is not viable (reverse or forward), go to the next
 						continue
 					
-					# if we got here, then the path back is valid, now we have to make the comparison to
-					# see if it is actually worth it to switch
+					if reverse: # only if reverse is still valid
+						# if we got here, then the path back is valid, now we have to make the comparison to
+						# see if it is actually worth it to switch
+						
+						# we can keep track of the current path cost accurately
+						# The back path we cannot fully keep track of since the end points change each iteration,
+						# therefore, we need to add from i to skip and from the end of the reverse -> afterIndex and 
+						if currCost > backCost + path[i].costTo(path[skipIndex]) \
+											   + path[(i+1) % len(cities)].costTo(path[afterIndex]):
+							# if we are here, we need to make the path alteration
+							#print("Reverse from", i, "to", skipIndex)
+							alteration = True
+							
+							# reconstruct the path. We cannot simply use slices because we don't know if
+							# skipIndex is after i (the looping by % throws it off)
+							tempPath = [path[i]]
+							ii = skipIndex
+							while ii != i:
+								tempPath.append(path[ii])
+								ii = (ii-1) % len(path)
+							ii = afterIndex
+							while ii != i:
+								tempPath.append(path[ii])
+								ii = (ii+1) % len(path)					
+							path = tempPath
+							break
 					
-					# we can keep track of the current path cost accurately
-					# The back path we cannot fully keep track of since the end points change each iteration,
-					# therefore, we need to add from i to skip and from the end of the reverse -> afterIndex and 
-					if currCost > backCost + path[i].costTo(path[skipIndex]) + \
-											path[(i+1) % len(cities)].costTo(path[afterIndex]):
-						# if we are here, we need to make the path alteration
-						#print("Reverse worked!", i, skipIndex)
+					# if reverse is not valid, then we can try a forward skip
+					# the forward skip jumps to the skipIndex then jumps back to finish the rest
+					# of the path until the skipIndex (at which point it continues to afterIndex).
+					# therefore, we can use currCost, which is the path so far
+					if currCost > currCost - path[i].costTo(path[(i+1) % len(cities)]) \
+										   - path[skipIndex-1].costTo(path[skipIndex]) \
+										   - path[skipIndex].costTo(path[afterIndex]) \
+										   + path[i].costTo(path[skipIndex]) \
+										   + path[skipIndex].costTo(path[(i+1) % len(cities)]) \
+										   + path[skipIndex-1].costTo(path[afterIndex]):
+						#print("Forward from", i, "to", skipIndex)
 						alteration = True
 						
 						# reconstruct the path. We cannot simply use slices because we don't know if
 						# skipIndex is after i (the looping by % throws it off)
-						tempPath = [path[i]]
-						ii = skipIndex
+						tempPath = [path[i], path[skipIndex]]
+						ii = (i + 1) % len(path)
+						while ii != skipIndex:
+							tempPath.append(path[ii])
+							ii = (ii+1) % len(path)	
+						ii = afterIndex
 						while ii != i:
 							tempPath.append(path[ii])
-							ii = (ii-1) % len(path)
-						ii = (skipIndex + 1) % len(path)
-						while ii != i:
-							tempPath.append(path[ii])
-							ii = (ii+1) % len(path)					
+							ii = (ii+1) % len(path)	
 						path = tempPath
 						break
 				# if alteration made, we need to restart the upper path iteration
